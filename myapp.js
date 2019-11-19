@@ -4,44 +4,25 @@ var timer;
 var manifestUri = 'https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd';
 // var manifestUri = 'https://yt-dash-mse-test.commondatastorage.googleapis.com/media/car-20120827-manifest.mpd';
 
-
+// if disabled, you can choose variants using player.selectVariantTrack(track: Variant, clearBuffer: boolean)
+const enableABR = true
 
 const evaluator = {
-	selectTrack: () => {},
-	tracks: [],
 	currentTrack: false,
 	evaluate: () => {},
 }
 
-evaluator.evaluate = (filteredTracks, currentTrack) => {
-	return filteredTracks[0]
+// Adaptation Strategy
+evaluator.evaluate = (tracks) => {
+	// if first select the lower variant
+	selected = tracks[0]
+
+	/*
+	 * Insert here you adaptation strategy
+	 */
+
+	return selected
 }
-
-evaluator.selectTrack = () => {
-	console.log('selecting track')
-	const currentTrack = evaluator.currentTrack
-
-	var filteredTracks = player.evaluator.tracks
-
-	filteredTracks = filteredTracks.filter(t => t.language === 'de')
-	// filteredTracks = filteredTracks.sort((t1, t2) => t1.height > t2.height)
-	
-	const selectedTrack = evaluator.evaluate(filteredTracks, currentTrack)
-
-	if(!currentTrack || selectedTrack.language !== currentTrack.language) {
-		console.log(!currentTrack ? 'first' : 'changing language')
-		// shaka.Player.prototype.selectTrack = selectedTrack
-		player.selectVariantTrack(selectedTrack, true)
-	} else {
-		console.log('not first')
-		// shaka.Player.prototype.selectTrack = selectedTrack
-		player.selectVariantTrack(selectedTrack, false)
-	}
-	
-	evaluator.currentTrack = filteredTracks[0]
-	console.log('options: ', filteredTracks)
-	console.log('selected: ', evaluator.currentTrack)
-};
 
 function initApp() {
 	// Install built-in polyfills to patch browser incompatibilities.
@@ -61,9 +42,10 @@ function initPlayer() {
 	// Create a Player instance.
 	var video = document.getElementById('video');
 	var player = new shaka.Player(video);
-
-	// // Attach player to the window to make it easy to access in the JS console.
+	
+	// Attach player to the window to make it easy to access in the JS console.
 	window.player = player;
+	// Attach evaluator to player to manage useful variables
 	player.evaluator = evaluator;
 	
 	
@@ -82,21 +64,86 @@ function initPlayer() {
 	// player.addEventListener('onstatechange',onStateChangeEvent);
 	// player.addEventListener('buffering', onBufferingEvent);
 	
+	// configure player: see https://github.com/google/shaka-player/blob/master/docs/tutorials/config.md
 	player.configure({
 		abr: {
-			enabled: false
+			enabled: enableABR,
+			switchInterval: 1,
 		}
 	})
+	
+	/**
+	 * Default SimplesAbrManager.prototype.chooseVariant code
+	 * @override
+	 */
+	// shaka.abr.SimpleAbrManager.prototype.chooseVariant = function() {
+	// 	const SimpleAbrManager = shaka.abr.SimpleAbrManager;
+	// 	// Get sorted Variants.
+	// 	let sortedVariants = SimpleAbrManager.filterAndSortVariants_(
+	// 		this.config_.restrictions, this.variants_
+	// 	);
+	// 	let currentBandwidth = this.bandwidthEstimator_.getBandwidthEstimate(
+	// 			this.config_.defaultBandwidthEstimate
+	// 	);
+	// 	if (this.variants_.length && !sortedVariants.length) {
+	// 		// If we couldn't meet the ABR restrictions, we should still play something.
+	// 		// These restrictions are not "hard" restrictions in the way that top-level
+	// 		// or DRM-based restrictions are.  Sort the variants without restrictions
+	// 		// and keep just the first (lowest-bandwidth) one.
+	// 		shaka.log.warning('No variants met the ABR restrictions. ' +
+	// 		'Choosing a variant by lowest bandwidth.');
+	// 		sortedVariants = SimpleAbrManager.filterAndSortVariants_(
+	// 			/* restrictions */ null, this.variants_);
 
+	// 		sortedVariants = [sortedVariants[0]];
+	// 	}
+					
+	// 	// Start by assuming that we will use the first Stream.
+	// 	let chosen = sortedVariants[0] || null;
+	// 	for (let i = 0; i < sortedVariants.length; ++i) {
+	// 		let variant = sortedVariants[i];
+	// 		let nextVariant = sortedVariants[i + 1] || {bandwidth: Infinity};
+	// 		let minBandwidth = variant.bandwidth /
+	// 		this.config_.bandwidthDowngradeTarget;
+	// 		let maxBandwidth = nextVariant.bandwidth /
+	// 		this.config_.bandwidthUpgradeTarget;
+	// 		shaka.log.v2('Bandwidth ranges:',
+	// 		(variant.bandwidth / 1e6).toFixed(3),
+	// 		(minBandwidth / 1e6).toFixed(3),
+	// 		(maxBandwidth / 1e6).toFixed(3));
+	// 		if (currentBandwidth >= minBandwidth && currentBandwidth <= maxBandwidth) {
+	// 			chosen = variant;
+	// 		}
+	// 	}
+	// 	this.lastTimeChosenMs_ = Date.now();
+	// 	console.log('JAÇSLKFHJKADLFHKLJSDHFO')
+	// 	return chosen;
+	// };
+
+	/**
+	 * Our SimplesAbrManager.prototype.chooseVariant code
+	 * @override
+	 */
+	shaka.abr.SimpleAbrManager.prototype.chooseVariant = function() {
+		// get variants list and sort down to up
+		var tracks =  this.variants_.sort((t1, t2) => t1.video.height - t2.video.height)
+
+		
+		console.log('tracks: ', this.variants_)
+		const selectedTrack = evaluator.evaluate(tracks)
+		
+		evaluator.currentTrack = selectedTrack
+		console.log('options: ', tracks)
+		console.log('selected: ', evaluator.currentTrack)
+		return evaluator.currentTrack
+	}
+				
 	// Try to load a manifest.
 	// This is an asynchronous process.
 	player.load(manifestUri).then(function() {
 		// This runs if the asynchronous load is successful.
 		console.log('The video has now been loaded!');
-		player.evaluator.tracks = player.getVariantTracks();
-		console.log(player);
-		console.log('tracks: ', evaluator.tracks);
-		player.evaluator.selectTrack();
+
 	}).catch(onError);  // onError is executed if the asynchronous load fails.
 }
 
@@ -115,7 +162,6 @@ function onPlayerPauseEvent(pause){
 
 function onPlayerProgressEvent(event) {
 	console.log('Progress Event: ', event);
-	window.player.evaluator.selectTrack();
 }
 
 function onErrorEvent(event) {
