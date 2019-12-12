@@ -18,6 +18,8 @@ function initApp() {
   }
 }
 
+let videoEvents = {'ended':[], 'pause':[],'play':[]};
+
 function initPlayer() {
   // Create a Player instance.
   var video = document.getElementById('video');
@@ -53,15 +55,18 @@ function initPlayer() {
 
 function onPlayerEndedEvent(ended){
   console.log('Video playback ended', ended);
+  videoEvents['ended'].push(ended.timeStamp);
   timer.stop();
 }
 
 function onPlayerPlayEvent(play){
   console.log('Video play hit', play);
+  videoEvents['play'].push(play.timeStamp);
 }
 
 function  onPlayerPauseEvent(pause){
   console.log('Video pause hit', pause);
+  videoEvents['pause'].push(pause.timeStamp);
 }
 
 function onErrorEvent(event) {
