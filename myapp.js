@@ -4,6 +4,17 @@ var timer;
 var manifestUri =
     'https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd';
 
+let enableABR = true;
+
+let evaluator = {
+  currentTrack: false,
+  evaluate: function(tracks){
+    selected = tracks[0];
+    console.log("selected track:", selected);
+    return selected;
+  }
+}
+
 function initApp() {
   // Install built-in polyfills to patch browser incompatibilities.
   shaka.polyfill.installAll();
@@ -25,22 +36,40 @@ function initPlayer() {
   var video = document.getElementById('video');
   var player = new shaka.Player(video);
 
+  // Attach player to the window to make it easy to access in the JS console.
+  window.player = player;
+  player.evaluator = evaluator;
 
   // create a timer
-   timer = new shaka.util.Timer(onTimeCollectStats)
-   //stats = new shaka.util.Stats(video)
+  timer = new shaka.util.Timer(onTimeCollectStats)
+  //stats = new shaka.util.Stats(video)
 
 
-   video.addEventListener('ended', onPlayerEndedEvent)
-   video.addEventListener('play', onPlayerPlayEvent)
-   video.addEventListener('pause', onPlayerPauseEvent)
+  video.addEventListener('ended', onPlayerEndedEvent)
+  video.addEventListener('play', onPlayerPlayEvent)
+  video.addEventListener('pause', onPlayerPauseEvent)
 
+  player.addEventListener('error', onErrorEvent);
 
-  // // Attach player to the window to make it easy to access in the JS console.
-  // window.player = player;
-  //
+	player.configure({
+		abr: {
+			enabled: enableABR,
+			switchInterval: 1,
+		}
+  });
+  
+  shaka.abr.SimpleAbrManager.prototype.chooseVariant = function() {
+		// get variants list and sort down to up
+		var tracks =  this.variants_.sort((t1, t2) => t1.video.height - t2.video.height)
+
+		
+		const selectedTrack = evaluator.evaluate(tracks)
+		
+		evaluator.currentTrack = selectedTrack
+		console.log("variant chosen");
+		return evaluator.currentTrack
+	}
   // // Listen for error events.
-  // player.addEventListener('error', onErrorEvent);
   // player.addEventListener('onstatechange',onStateChangeEvent);
   // player.addEventListener('buffering', onBufferingEvent);
 
