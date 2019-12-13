@@ -29,7 +29,12 @@ function initApp() {
   }
 }
 
-let videoEvents = {'ended':[], 'pause':[],'play':[]};
+let videoEvents = {};
+let events = ['abort','canplay','canplaythrough','durationchange', 
+'emptied','ended','error','interruptbegin','interruptend','loadeddata',
+'loadedmetadata','loadstart','mozaudioavailable','pause','play',
+'playing','progress','ratechange','seeked','seeking','stalled',
+'suspend','timeupdate','volumechange','waiting'];
 
 function initPlayer() {
   // Create a Player instance.
@@ -44,10 +49,17 @@ function initPlayer() {
   timer = new shaka.util.Timer(onTimeCollectStats)
   //stats = new shaka.util.Stats(video)
 
+  events.forEach(eventType => {
+    videoEvents[eventType] = [];
 
-  video.addEventListener('ended', onPlayerEndedEvent)
-  video.addEventListener('play', onPlayerPlayEvent)
-  video.addEventListener('pause', onPlayerPauseEvent)
+    video.addEventListener(eventType, event => {
+      videoEvents[event.type].push(event.timeStamp);
+      if(event.type == 'ended'){
+        timer.stop();
+      }
+    });
+
+  });
 
   player.addEventListener('error', onErrorEvent);
 
@@ -80,22 +92,6 @@ function initPlayer() {
     // This runs if the asynchronous load is successful.
     console.log('The video has now been loaded!');
   }).catch(onError);  // onError is executed if the asynchronous load fails.
-}
-
-function onPlayerEndedEvent(ended){
-  console.log('Video playback ended', ended);
-  videoEvents['ended'].push(ended.timeStamp);
-  timer.stop();
-}
-
-function onPlayerPlayEvent(play){
-  console.log('Video play hit', play);
-  videoEvents['play'].push(play.timeStamp);
-}
-
-function  onPlayerPauseEvent(pause){
-  console.log('Video pause hit', pause);
-  videoEvents['pause'].push(pause.timeStamp);
 }
 
 function onErrorEvent(event) {
