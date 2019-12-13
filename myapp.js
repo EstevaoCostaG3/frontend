@@ -10,6 +10,7 @@ let evaluator = {
   currentTrack: false,
   evaluate: function(tracks){
     selected = tracks[0];
+    this.currentTrack = selected;
     console.log("selected track:", selected);
     return selected;
   }
@@ -69,28 +70,21 @@ function initPlayer() {
 			switchInterval: 1,
 		}
   });
-  
-  shaka.abr.SimpleAbrManager.prototype.chooseVariant = function() {
-		// get variants list and sort down to up
-		var tracks =  this.variants_.sort((t1, t2) => t1.video.height - t2.video.height)
-
-		
-		const selectedTrack = evaluator.evaluate(tracks)
-		
-		evaluator.currentTrack = selectedTrack
-		console.log("variant chosen");
-		return evaluator.currentTrack
-	}
-  // // Listen for error events.
-  // player.addEventListener('onstatechange',onStateChangeEvent);
-  // player.addEventListener('buffering', onBufferingEvent);
-
 
   // Try to load a manifest.
   // This is an asynchronous process.
   player.load(manifestUri).then(function() {
     // This runs if the asynchronous load is successful.
     console.log('The video has now been loaded!');
+
+    player.abrManager_.chooseVariant = function() {
+      // ordena as versões (variantes) de forma ascendente pelo seu tamanho
+      let tracks =  this.variants_.sort((t1, t2) => t1.video.height > t2.video.height);
+      
+      let selectedTrack = evaluator.evaluate(tracks);
+      return selectedTrack;
+    };
+
   }).catch(onError);  // onError is executed if the asynchronous load fails.
 }
 
