@@ -78,6 +78,7 @@ function initPlayer() {
     console.log('The video has now been loaded!');
 
     player.abrManager_.chooseVariant = function() {
+      console.info("estimated bandwidth:", this.getBandwidthEstimate());
       // ordena as versões (variantes) de forma ascendente pelo seu tamanho
       let tracks =  this.variants_.sort((t1, t2) => t1.video.height > t2.video.height);
       
