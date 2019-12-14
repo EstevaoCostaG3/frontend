@@ -4,6 +4,29 @@ var timer;
 var manifestUri =
     'https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd';
 
+class Event{
+  constructor(){
+    this.logs = {};
+  }
+  set(key, records){
+    this.logs[key]=records
+  }
+  get(key){
+    return this.logs[key]
+  }
+  push(key, value){
+    let isKeyInLogs = key in this.logs
+    if (isKeyInLogs){
+      this.logs[key].push(value)
+    }else{
+      this.logs[key] = [value]
+    }
+  }
+  dump(){
+    return this.logs;
+  }
+};
+
 let enableABR = true;
 
 let evaluator = {
@@ -48,7 +71,6 @@ function initApp() {
   }
 }
 
-let videoEvents = {};
 let events = ['abort','canplay','canplaythrough','durationchange', 
 'emptied','ended','error','interruptbegin','interruptend','loadeddata',
 'loadedmetadata','loadstart','mozaudioavailable','pause','play',
@@ -68,11 +90,10 @@ function initPlayer() {
   timer = new shaka.util.Timer(onTimeCollectStats)
   //stats = new shaka.util.Stats(video)
 
+  let videoEvents = new Event();
   events.forEach(eventType => {
-    videoEvents[eventType] = [];
-
     video.addEventListener(eventType, event => {
-      videoEvents[event.type].push(event.timeStamp);
+      videoEvents.push(event.type, event.timeStamp);
       if(event.type == 'ended'){
         timer.stop();
       }
