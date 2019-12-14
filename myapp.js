@@ -27,6 +27,49 @@ class Event{
   }
 };
 
+const environment = {
+  log: { url: 'http://localhost:3000' }
+};
+
+class Logger {
+  constructor(userId, sessionId) {
+      this.userId = userId;
+      this.sessionId = sessionId;
+  }
+  debug(primaryMessage, ...supportingData) {
+      this.emitLogMessage("debug", primaryMessage, supportingData);
+  }
+  warn(primaryMessage, ...supportingData) {
+      this.emitLogMessage("warn", primaryMessage, supportingData);
+  }
+  error(primaryMessage, ...supportingData) {
+      this.emitLogMessage("error", primaryMessage, supportingData);
+  }
+  info(primaryMessage, ...supportingData) {
+      this.emitLogMessage("info", primaryMessage, supportingData);
+  }
+  emitLogMessage(msgType, msg, supportingDetails) {
+      let body = { 'msgType': msgType,
+          'msg': msg,
+          'userId': this.userId,
+          'sessionId': this.sessionId,
+          'log': supportingDetails[0]
+      };
+      console.info('body: ', JSON.stringify(body));
+      fetch(environment.log.url + '/events', {
+          headers: { "Content-Type": "application/json; charset=utf-8",
+              "Authorization": "Bearer " + this.sessionId
+          },
+          method: 'POST',
+          body: JSON.stringify(body)
+      }).then(response => response.json())
+          .then(json => console.info(json))
+          .catch(error => {
+            console.error(error);
+      });
+  }
+}
+
 let enableABR = true;
 
 let evaluator = {
