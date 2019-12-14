@@ -8,11 +8,29 @@ let enableABR = true;
 
 let evaluator = {
   currentTrack: false,
-  evaluate: function(tracks){
-    selected = tracks[0];
-    this.currentTrack = selected;
-    console.log("selected track:", selected);
-    return selected;
+  averageBandwidth: BigInt(0),
+  n: 0,
+  calculateAverage : function(bandwidthEstimated){
+    this.n = this.n + 1;
+    let intPartOfBandwidthEstimated = bandwidthEstimated.toString().split('.')[0];
+    this.averageBandwidth = (BigInt(this.n - 1) * this.averageBandwidth + BigInt(intPartOfBandwidthEstimated)) / BigInt(this.n);
+    
+    if(this.n == 20){
+      this.n = 0;
+      console.info("reset bandwidth average");
+    }
+  },
+  evaluate: function(tracks, bandwidthEstimated){
+    this.calculateAverage(bandwidthEstimated);
+    console.info('averageBandwidth:', this.averageBandwidth);
+    if(this.averageBandwidth < tracks[0].bandwidth){
+      return tracks[0];
+    }
+    let i = 0;
+    while(i < tracks.length && tracks[i].bandwidth < this.averageBandwidth){
+      i++;
+    }
+    return tracks[i - 1];
   }
 }
 
@@ -78,11 +96,10 @@ function initPlayer() {
     console.log('The video has now been loaded!');
 
     player.abrManager_.chooseVariant = function() {
-      console.info("estimated bandwidth:", this.getBandwidthEstimate());
       // ordena as versões (variantes) de forma ascendente pelo seu tamanho
       let tracks =  this.variants_.sort((t1, t2) => t1.video.height > t2.video.height);
       
-      let selectedTrack = evaluator.evaluate(tracks);
+      let selectedTrack = evaluator.evaluate(tracks, this.getBandwidthEstimate());
       return selectedTrack;
     };
 
