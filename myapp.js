@@ -70,6 +70,35 @@ class Logger {
   }
 }
 
+const email = 'icc453@icomp';
+const password = 'batman';
+
+class CredentialManager {
+  static login(email, password){
+    let body = {
+        'email':email,
+        'password':password
+    }
+    return new Promise((resolve, reject) => {
+        fetch(environment.log.url+'/users/authenticate', {
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            method: 'POST',
+            body: JSON.stringify(body)
+        })
+        .then(response=>response.json())
+        .then(json=>{
+            console.info('accessToken:', json['accessToken']);
+            const credential = new CredentialManager();
+            credential['_token'] = json['accessToken'];
+            resolve(credential)
+        })
+        .catch(error=>{
+            reject(error);
+        })
+    });
+  }
+}
+
 let enableABR = true;
 
 let evaluator = {
@@ -132,13 +161,23 @@ function initPlayer() {
   // create a timer
   timer = new shaka.util.Timer(onTimeCollectStats)
   //stats = new shaka.util.Stats(video)
-
   let videoEvents = new Event();
   events.forEach(eventType => {
     video.addEventListener(eventType, event => {
       videoEvents.push(event.type, event.timeStamp);
       if(event.type == 'ended'){
         timer.stop();
+        CredentialManager.login(email, password).then(function (credential) {
+          logger = new Logger(email, credential._token);
+          try {
+              logger.info('videoEvents', videoEvents.dump());
+          }catch(error){
+              console.error(error);
+          }
+        }).catch(function (error) {
+            console.error('Failed to log in');
+            throw error;
+        });
       }
     });
 
