@@ -170,7 +170,14 @@ function initPlayer() {
         CredentialManager.login(email, password).then(function (credential) {
           logger = new Logger(email, credential._token);
           try {
-              logger.info('videoEvents', videoEvents.dump());
+            let stats = player.getStats();
+            videoEvents.push("SDelay", stats.loadLatency);
+            stats.switchHistory.forEach(track => {
+              if(track.type == "variant"){
+                videoEvents.push("BSwitch", track.timestamp);
+              }
+            });
+            logger.info('videoEvents', videoEvents.dump());
           }catch(error){
               console.error(error);
           }
