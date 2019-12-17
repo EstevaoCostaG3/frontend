@@ -162,6 +162,10 @@ function initPlayer() {
   timer = new shaka.util.Timer(onTimeCollectStats)
   //stats = new shaka.util.Stats(video)
   let videoEvents = new Event();
+  videoEvents.push('TechID', 'Wifi')
+  videoEvents.push('contentId','nome_aleatorio');
+
+
   events.forEach(eventType => {
     video.addEventListener(eventType, event => {
       videoEvents.push(event.type, event.timeStamp);
@@ -171,6 +175,7 @@ function initPlayer() {
           logger = new Logger(email, credential._token);
           try {
               logger.info('videoEvents', videoEvents.dump());
+              
           }catch(error){
               console.error(error);
           }
