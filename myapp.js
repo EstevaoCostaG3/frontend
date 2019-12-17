@@ -149,6 +149,9 @@ let events = ['abort','canplay','canplaythrough','durationchange',
 'playing','progress','ratechange','seeked','seeking','stalled',
 'suspend','timeupdate','volumechange','waiting'];
 
+const techIds = {"wifi": 1, "cabo": 2, "3G": 3, "4G": 4};
+const contentIds = {"StarTrek": 1, "Animation": 2};
+
 function initPlayer() {
   // Create a Player instance.
   var video = document.getElementById('video');
@@ -162,9 +165,8 @@ function initPlayer() {
   timer = new shaka.util.Timer(onTimeCollectStats)
   //stats = new shaka.util.Stats(video)
   let videoEvents = new Event();
-  videoEvents.push('TechID', 'Wifi')
-  videoEvents.push('contentId','nome_aleatorio');
-
+  videoEvents.push('TechID', techIds['wifi']);
+  videoEvents.push('ContentId', contentIds['StarTrek']);
 
   events.forEach(eventType => {
     video.addEventListener(eventType, event => {
